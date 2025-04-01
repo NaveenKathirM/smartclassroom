@@ -1,42 +1,77 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import React, {useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+} from 'react-native';
+import axios from 'axios'; // Axios for making HTTP requests
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import PopupAlert from '../../components/PopupAlert'; // Assuming PopupAlert component exists
+import PopupAlert from '../../components/PopupAlert';
 
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [alert, setAlert] = useState({ visible: false, type: '', message: '' });
+  const [alert, setAlert] = useState({visible: false, type: '', message: ''});
 
   const handleLogin = async () => {
-    const existingUsers = JSON.parse(await AsyncStorage.getItem('users')) || [];
-    const user = existingUsers.find(
-      (u) => u.username === username && u.password === password
-    );
-
-    if (!user) {
-      setAlert({ visible: true, type: 'error', message: 'Invalid username or password.' });
+    // Basic validation
+    if (!username || !password) {
+      setAlert({
+        visible: true,
+        type: 'error',
+        message: 'Please enter both username and password.',
+      });
       return;
     }
 
-    await AsyncStorage.setItem('loggedInUser', JSON.stringify(user));
+    const userData = {
+      username,
+      password,
+    };
 
-    setAlert({
-      visible: true,
-      type: 'success',
-      message: `Welcome, ${user.username}! Redirecting to your dashboard...`,
-    });
+    try {
+      // Send login request to the backend
+      const response = await axios.post(
+        'http://192.168.1.11:6777/login',
+        userData,
+      ); // Replace with your local IP address or backend URL
 
-    setTimeout(() => {
-      setAlert({ visible: false, type: '', message: '' });
-      if (user.type === 'Teacher') {
-        navigation.navigate('TeacherDashboard', { user });
-      } else if (user.type === 'Student') {
-        navigation.navigate('StudentDashboard', { user });
-      } else if (user.type === 'Admin') {
-        navigation.navigate('AdminDashboard', { user });
-      }
-    }, 2000);
+      const {access_token, user, username: responseUsername} = response.data;
+
+      // Store the logged-in user in AsyncStorage
+      await AsyncStorage.setItem('access_token', access_token);
+      await AsyncStorage.setItem(
+        'loggedInUser',
+        JSON.stringify({username: responseUsername, user}),
+      );
+
+      // Handle successful login based on user type
+      setAlert({
+        visible: true,
+        type: 'success',
+        message: `Welcome, ${responseUsername}! Redirecting to your dashboard...`,
+      });
+
+      setTimeout(() => {
+        setAlert({visible: false, type: '', message: ''});
+        if (user === 'Teacher') {
+          navigation.navigate('TeacherDashboard');
+        } else if (user === 'Student') {
+          navigation.navigate('StudentDashboard');
+        } else if (user === 'Admin') {
+          navigation.navigate('AdminDashboard');
+        }
+      }, 2000);
+    } catch (error) {
+      setAlert({
+        visible: true,
+        type: 'error',
+        message: error.response?.data?.msg || 'Invalid username or password.',
+      });
+    }
   };
 
   return (
@@ -69,7 +104,7 @@ const LoginScreen = ({ navigation }) => {
         <PopupAlert
           type={alert.type}
           message={alert.message}
-          onClose={() => setAlert({ ...alert, visible: false })}
+          onClose={() => setAlert({...alert, visible: false})}
         />
       )}
     </View>

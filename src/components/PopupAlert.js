@@ -1,10 +1,16 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+// PopupAlert.js
 
-const PopupAlert = ({ type, message, onClose }) => {
+import React from 'react';
+import {View, Text, TouchableOpacity, StyleSheet} from 'react-native';
+
+const PopupAlert = ({type, message, onClose}) => {
   const isError = type === 'error';
   return (
-    <View style={[styles.container, isError ? styles.errorContainer : styles.successContainer]}>
+    <View
+      style={[
+        styles.container,
+        isError ? styles.errorContainer : styles.successContainer,
+      ]}>
       <Text style={styles.message}>{message}</Text>
       <TouchableOpacity onPress={onClose} style={styles.closeButton}>
         <Text style={styles.closeText}>Close</Text>

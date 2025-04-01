@@ -1,63 +1,74 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image } from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, FlatList, Image} from 'react-native';
+import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 
 const StudentList = () => {
   const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchStudents = async () => {
-      const users = JSON.parse(await AsyncStorage.getItem('users')) || [];
-      const attendanceRecords = {};
-      
-      // Retrieve attendance data for each student
-      for (const user of users.filter((u) => u.type === 'Student')) {
-        const attendanceKey = `attendance_${user.username}`;
-        const attendance = JSON.parse(await AsyncStorage.getItem(attendanceKey)) || [];
-        const percentage = ((attendance.length / 10) * 100).toFixed(2); // Assuming 10 classes
-        attendanceRecords[user.username] = percentage;
+      try {
+        // Get the token from AsyncStorage
+        const accessToken = await AsyncStorage.getItem('access_token');
+        if (!accessToken) {
+          throw new Error('No token found');
+        }
+
+        // Make the API call to Flask backend
+        const response = await axios.get('http://192.168.1.11:6777/students', {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        setStudents(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching students:', error);
+        setLoading(false);
       }
-
-      // Attach attendance to student records
-      const studentData = users
-        .filter((user) => user.type === 'Student')
-        .map((student) => ({
-          ...student,
-          attendance: attendanceRecords[student.username] || 0,
-        }));
-
-      setStudents(studentData);
     };
 
     fetchStudents();
   }, []);
 
-  const renderStudentCard = ({ item }) => {
+  const renderStudentCard = ({item}) => {
     const attendanceColor =
-      item.attendance >= 75 ? '#28a745' : item.attendance >= 50 ? '#ffc107' : '#dc3545';
+      item.attendance >= 75
+        ? '#28a745'
+        : item.attendance >= 50
+        ? '#ffc107'
+        : '#dc3545';
 
     return (
       <View style={styles.studentCard}>
         <View style={styles.studentInfo}>
-        <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1077/1077012.png' }}
-          style={styles.icon}
-        />
+          <Image
+            source={{
+              uri: 'https://cdn-icons-png.flaticon.com/512/1077/1077012.png',
+            }}
+            style={styles.icon}
+          />
           <View style={styles.studentDetails}>
             <Text style={styles.studentName}>{item.name}</Text>
-            <Text style={styles.studentUsername}>Username: {item.username}</Text>
+            <Text style={styles.studentUsername}>
+              Username: {item.username}
+            </Text>
           </View>
         </View>
         <View style={styles.attendanceWrapper}>
-          <Text style={[styles.attendance, { color: attendanceColor }]}>
+          <Text style={[styles.attendance, {color: attendanceColor}]}>
             Attendance: {item.attendance}%
           </Text>
         </View>
         <View style={styles.extraDetails}>
-          <Text style={styles.detailText}>Class: {item.class || 'N/A'}</Text>
-          <Text style={styles.detailText}>Register No: {item.registerNumber || 'N/A'}</Text>
-          <Text style={styles.detailText}>Mobile: {item.mobileNumber || 'N/A'}</Text>
+          <Text style={styles.detailText}>Class: {item.class}</Text>
+          <Text style={styles.detailText}>
+            Register No: {item.registerNumber}
+          </Text>
+          <Text style={styles.detailText}>Mobile: {item.mobileNumber}</Text>
         </View>
       </View>
     );
@@ -66,7 +77,9 @@ const StudentList = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Student List</Text>
-      {students.length > 0 ? (
+      {loading ? (
+        <Text style={styles.noDataText}>Loading students...</Text>
+      ) : students.length > 0 ? (
         <FlatList
           data={students}
           renderItem={renderStudentCard}
@@ -109,7 +122,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 4,
     elevation: 3,
   },

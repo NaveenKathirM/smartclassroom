@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBiometrics from 'react-native-biometrics';
 
-const AttendanceScreen = ({ navigation }) => {
+const AttendanceScreen = ({navigation}) => {
   const [attendance, setAttendance] = useState([]);
   const [currentClass, setCurrentClass] = useState(1);
   const [timer, setTimer] = useState(0);
@@ -18,9 +18,11 @@ const AttendanceScreen = ({ navigation }) => {
 
   useEffect(() => {
     const fetchAttendance = async () => {
-      const loggedInUser = JSON.parse(await AsyncStorage.getItem('loggedInUser')) || {};
+      const loggedInUser =
+        JSON.parse(await AsyncStorage.getItem('loggedInUser')) || {};
       const username = loggedInUser.username;
-      const storedAttendance = JSON.parse(await AsyncStorage.getItem(`attendance_${username}`)) || [];
+      const storedAttendance =
+        JSON.parse(await AsyncStorage.getItem(`attendance_${username}`)) || [];
       setAttendance(storedAttendance);
     };
 
@@ -30,23 +32,31 @@ const AttendanceScreen = ({ navigation }) => {
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 20);
-  
+        setTimer(prev => prev - 1);
+      }, 1000);
+
       return () => clearInterval(interval);
     } else if (timer === 0 && attendance.includes(currentClass)) {
-      setCurrentClass((prev) => prev + 1); // Move to the next class after the timer ends
+      setCurrentClass(prev => prev + 1);
     }
-  }, [timer, attendance, currentClass]); // Include dependencies
-  
+  }, [timer, attendance, currentClass]);
 
   const handleBiometricAuth = async () => {
     try {
-      const { available } = await rnBiometrics.isSensorAvailable();
+      const {available, biometryType} = await rnBiometrics.isSensorAvailable();
 
       if (available) {
+        let promptMessage = 'Confirm your identity to mark attendance';
+
+        // Fix the condition to correctly check for Face Recognition types
+        if (biometryType === 'Face' || biometryType === 'Face Lock') {
+          promptMessage = 'Please use Face Recognition to mark attendance';
+        } else if (biometryType === 'Fingerprint') {
+          promptMessage = 'Please use Fingerprint to mark attendance';
+        }
+
         const result = await rnBiometrics.simplePrompt({
-          promptMessage: 'Confirm your identity to mark attendance',
+          promptMessage,
         });
 
         if (result.success) {
@@ -57,31 +67,65 @@ const AttendanceScreen = ({ navigation }) => {
       } else {
         Alert.alert(
           'Error',
-          `Biometric authentication not available. Please check your device settings.`
+          'Biometric authentication not available. Please check your device settings.',
         );
       }
     } catch (error) {
-      Alert.alert('Error', 'An error occurred during biometric authentication.');
+      Alert.alert(
+        'Error',
+        'An error occurred during biometric authentication.',
+      );
     }
   };
 
   const markAttendance = async () => {
-    const loggedInUser = JSON.parse(await AsyncStorage.getItem('loggedInUser')) || {};
+    const loggedInUser =
+      JSON.parse(await AsyncStorage.getItem('loggedInUser')) || {};
     const username = loggedInUser.username;
 
     if (attendance.includes(currentClass)) {
-      Alert.alert('Already Marked', `Attendance for Class ${currentClass} is already marked.`);
+      Alert.alert(
+        'Already Marked',
+        `Attendance for Class ${currentClass} is already marked.`,
+      );
       return;
     }
 
     const updatedAttendance = [...attendance, currentClass];
-    await AsyncStorage.setItem(`attendance_${username}`, JSON.stringify(updatedAttendance));
-    setAttendance(updatedAttendance);
 
-    if (currentClass < 10) {
-      setTimer(60); // Start the timer for the next class
-    } else {
-      Alert.alert('Completed', 'Attendance for all classes is marked.');
+    try {
+      const accessToken = await AsyncStorage.getItem('access_token');
+
+      const response = await fetch('http://192.168.1.11:6777/mark-attendance', {
+        // Update API URL here
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({class_number: currentClass}),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        // Save updated attendance to AsyncStorage
+        await AsyncStorage.setItem(
+          `attendance_${username}`,
+          JSON.stringify(updatedAttendance),
+        );
+        setAttendance(updatedAttendance);
+
+        if (currentClass < 10) {
+          setTimer(60); // Start the timer for the next class
+        } else {
+          Alert.alert('Completed', 'Attendance for all classes is marked.');
+        }
+      } else {
+        Alert.alert('Error', result.msg || 'Failed to mark attendance.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to mark attendance due to network error.');
     }
   };
 
@@ -94,7 +138,7 @@ const AttendanceScreen = ({ navigation }) => {
       <Text style={styles.title}>Attendance</Text>
       <Text style={styles.subtitle}>Mark your attendance for each class</Text>
 
-      {Array.from({ length: 10 }, (_, index) => (
+      {Array.from({length: 10}, (_, index) => (
         <View key={index + 1} style={styles.classCard}>
           <Text style={styles.classText}>Class {index + 1}</Text>
           <Text style={styles.subjectText}>Subject: Subject {index + 1}</Text>
@@ -105,9 +149,12 @@ const AttendanceScreen = ({ navigation }) => {
                 ? styles.disabledButton
                 : {},
             ]}
-            disabled={attendance.includes(index + 1) || currentClass !== index + 1 || timer > 0}
-            onPress={handleBiometricAuth}
-          >
+            disabled={
+              attendance.includes(index + 1) ||
+              currentClass !== index + 1 ||
+              timer > 0
+            }
+            onPress={handleBiometricAuth}>
             <Text style={styles.attendanceButtonText}>
               {attendance.includes(index + 1) ? 'Marked' : 'Mark Attendance'}
             </Text>
@@ -116,7 +163,9 @@ const AttendanceScreen = ({ navigation }) => {
       ))}
 
       {timer > 0 && (
-        <Text style={styles.timerText}>Next class available in {timer} seconds...</Text>
+        <Text style={styles.timerText}>
+          Next class available in {timer} seconds...
+        </Text>
       )}
 
       <Text style={styles.percentageText}>
@@ -154,7 +203,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 5,
     width: '100%',
   },

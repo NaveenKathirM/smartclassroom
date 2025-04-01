@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   View,
   Text,
@@ -8,20 +8,40 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
-const StudentQuizScreen = ({ navigation }) => {
+const StudentQuizScreen = ({navigation}) => {
   const [quizzes, setQuizzes] = useState([]);
   const [answers, setAnswers] = useState({});
   const [studentUsername, setStudentUsername] = useState('');
 
   useEffect(() => {
     const fetchQuizzes = async () => {
-      const storedQuizzes = JSON.parse(await AsyncStorage.getItem('quizzes')) || [];
-      setQuizzes(storedQuizzes);
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No token found');
+      }
 
-      const loggedInUser = JSON.parse(await AsyncStorage.getItem('loggedInUser'));
-      if (loggedInUser) {
-        setStudentUsername(loggedInUser.username); // Get the username
+      try {
+        const response = await axios.get(
+          'http://192.168.1.11:6777/get-quizzes',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        setQuizzes(response.data);
+
+        const loggedInUser = JSON.parse(
+          await AsyncStorage.getItem('loggedInUser'),
+        );
+        if (loggedInUser) {
+          setStudentUsername(loggedInUser.username); // Get the username
+        }
+      } catch (error) {
+        console.error('Error fetching quizzes:', error);
       }
     };
 
@@ -29,7 +49,7 @@ const StudentQuizScreen = ({ navigation }) => {
   }, []);
 
   const handleSelectOption = (quizIndex, option) => {
-    setAnswers((prev) => ({
+    setAnswers(prev => ({
       ...prev,
       [quizIndex]: option,
     }));
@@ -51,11 +71,32 @@ const StudentQuizScreen = ({ navigation }) => {
     const percentage = ((correctCount / quizzes.length) * 100).toFixed(2);
     Alert.alert('Quiz Completed', `You scored ${percentage}%`);
 
-    const results = JSON.parse(await AsyncStorage.getItem('results')) || [];
-    results.push({ studentUsername, percentage }); // Store the username
-    await AsyncStorage.setItem('results', JSON.stringify(results));
+    // Send the result to the backend for persistence
+    try {
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No token found');
+      }
 
-    navigation.goBack();
+      await axios.post(
+        'http://192.168.1.11:6777/save-quiz-result',
+        {
+          studentUsername,
+          percentage,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      Alert.alert('Success', 'Your result has been saved.');
+      navigation.goBack();
+    } catch (error) {
+      console.error('Error saving result:', error);
+      Alert.alert('Error', 'Failed to save result. Please try again.');
+    }
   };
 
   return (
@@ -73,10 +114,11 @@ const StudentQuizScreen = ({ navigation }) => {
                 styles.option,
                 answers[index] === option ? styles.optionSelected : null,
               ]}
-              onPress={() => handleSelectOption(index, option)}
-            >
+              onPress={() => handleSelectOption(index, option)}>
               <View style={styles.radio}>
-                {answers[index] === option && <View style={styles.radioSelected} />}
+                {answers[index] === option && (
+                  <View style={styles.radioSelected} />
+                )}
               </View>
               <Text style={styles.optionText}>{option}</Text>
             </TouchableOpacity>
@@ -110,7 +152,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowRadius: 2,
   },
   quizText: {

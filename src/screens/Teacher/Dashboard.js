@@ -1,27 +1,39 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image } from 'react-native';
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Image,
+} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TeacherDashboard = ({ navigation }) => {
-  const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('loggedInUser'); // Remove logged-in user data
-      Alert.alert('Logout Successful', 'You have been logged out.');
-      navigation.replace('Login'); // Navigate back to the Login screen
-    } catch (error) {
-      Alert.alert('Error', 'Failed to logout. Please try again.');
-    }
-  };
+const TeacherDashboard = ({navigation}) => {
+  const [studyMaterials, setStudyMaterials] = useState([]);
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      const storedMaterials =
+        JSON.parse(await AsyncStorage.getItem('studyMaterials')) || [];
+      setStudyMaterials(storedMaterials);
+    };
+    fetchMaterials();
+  }, []);
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Welcome, Teacher!</Text>
-      <Text style={styles.subtitle}>Manage your classroom effectively with these tools:</Text>
-
-      {/* Attendance Card */}
+      <Text style={styles.title}>Welcome, Teacher! 👨‍🏫</Text>
+      <Text style={styles.subtitle}>
+        Manage your classroom effectively with these tools:
+      </Text>
+      {/* 📌 Attendance Card */}
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3197/3197469.png' }} // Card Checklist Icon
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/3197/3197469.png',
+          }}
           style={styles.icon}
         />
         <Text style={styles.cardTitle}>Attendance</Text>
@@ -30,31 +42,34 @@ const TeacherDashboard = ({ navigation }) => {
         </Text>
         <TouchableOpacity
           style={styles.cardButton}
-          onPress={() => navigation.navigate('TeacherAttendanceScreen')}
-        >
+          onPress={() => navigation.navigate('TeacherAttendanceScreen')}>
           <Text style={styles.cardButtonText}>Go to Attendance</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Presentations Card */}
+      📌 Study Materials Upload Card (Navigates to Upload Page)
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/609/609823.png' }} // Screen Presentation Icon
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/2991/2991100.png',
+          }}
           style={styles.icon}
         />
-        <Text style={styles.cardTitle}>Presentations</Text>
+        <Text style={styles.cardTitle}>Upload Study Materials</Text>
         <Text style={styles.cardDescription}>
-          Share your screen or presentations with the class.
+          Upload and share PDFs with students.
         </Text>
-        <TouchableOpacity style={styles.cardButton}>
-          <Text style={styles.cardButtonText}>Share Screen</Text>
+        <TouchableOpacity
+          style={styles.cardButton}
+          onPress={() => navigation.navigate('UploadStudyMaterial')}>
+          <Text style={styles.cardButtonText}>Upload PDF</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Quizzes Card */}
+      {/* 📌 Quizzes Card */}
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/3197/3197499.png' }} // Question Circle Icon
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/3197/3197499.png',
+          }}
           style={styles.icon}
         />
         <Text style={styles.cardTitle}>Quizzes</Text>
@@ -63,34 +78,69 @@ const TeacherDashboard = ({ navigation }) => {
         </Text>
         <TouchableOpacity
           style={styles.cardButton}
-          onPress={() => navigation.navigate('QuizScreen')}
-        >
+          onPress={() => navigation.navigate('QuizScreen')}>
           <Text style={styles.cardButtonText}>Create Quiz</Text>
         </TouchableOpacity>
       </View>
-
-      {/* Student List Card */}
+      {/* 📌 Student List Card */}
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/1077/1077113.png' }} // Person Lines Fill Icon
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/1077/1077113.png',
+          }}
           style={styles.icon}
         />
         <Text style={styles.cardTitle}>Student List</Text>
         <Text style={styles.cardDescription}>
-          View and manage your student list and attendance.
+          View and manage your student list.
         </Text>
         <TouchableOpacity
           style={styles.cardButton}
-          onPress={() => navigation.navigate('StudentList')}
-        >
+          onPress={() => navigation.navigate('StudentList')}>
           <Text style={styles.cardButtonText}>View Students</Text>
         </TouchableOpacity>
       </View>
-
-      {/* View Analytics Card */}
       <View style={styles.card}>
         <Image
-          source={{ uri: 'https://cdn-icons-png.flaticon.com/512/5488/5488717.png' }} // Graph Up Icon
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/3197/3197480.png',
+          }}
+          style={styles.icon}
+        />
+        <Text style={styles.cardTitle}>Manage Timetable</Text>
+        <Text style={styles.cardDescription}>
+          Analyze timetable and manage timetable.
+        </Text>
+        <TouchableOpacity
+          style={styles.cardButton}
+          onPress={() => navigation.navigate('ManageTimetable')}>
+          <Text style={styles.cardButtonText}>Edit Timetable</Text>
+        </TouchableOpacity>
+      </View>
+      {/* 📌 Start Presentation */}
+      <View style={styles.card}>
+        <Image
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/2891/2891445.png',
+          }}
+          style={styles.icon}
+        />
+        <Text style={styles.cardTitle}>Start Presentation</Text>
+        <Text style={styles.cardDescription}>
+          Share your screen with students.
+        </Text>
+        <TouchableOpacity
+          style={styles.cardButton}
+          onPress={() => navigation.navigate('StartPresentation')}>
+          <Text style={styles.cardButtonText}>Start Now</Text>
+        </TouchableOpacity>
+      </View>
+      {/* 📌 View Analytics Card */}
+      <View style={styles.card}>
+        <Image
+          source={{
+            uri: 'https://cdn-icons-png.flaticon.com/512/5488/5488717.png',
+          }}
           style={styles.icon}
         />
         <Text style={styles.cardTitle}>View Analytics</Text>
@@ -99,19 +149,25 @@ const TeacherDashboard = ({ navigation }) => {
         </Text>
         <TouchableOpacity
           style={styles.cardButton}
-          onPress={() => navigation.navigate('Analytics')}
-        >
+          onPress={() => navigation.navigate('Analytics')}>
           <Text style={styles.cardButtonText}>View Analytics</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+      {/* 📌 Logout Button */}
+      <TouchableOpacity
+        style={styles.logoutButton}
+        onPress={async () => {
+          await AsyncStorage.removeItem('loggedInUser');
+          Alert.alert('Logout Successful', 'You have been logged out.');
+          navigation.replace('Login');
+        }}>
         <Text style={styles.logoutButtonText}>Logout</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 };
 
+// 🔹 Styles
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
@@ -122,36 +178,36 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#2c3e50',
     marginBottom: 10,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
+    color: '#7f8c8d',
     textAlign: 'center',
     marginBottom: 20,
   },
   card: {
     width: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
     padding: 20,
     marginBottom: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 3},
     shadowRadius: 5,
-    elevation: 3,
+    elevation: 4,
   },
   icon: {
-    width: 40,
-    height: 40,
+    width: 50,
+    height: 50,
     marginBottom: 10,
   },
   cardTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
     marginTop: 10,
@@ -164,14 +220,15 @@ const styles = StyleSheet.create({
   },
   cardButton: {
     backgroundColor: '#007BFF',
-    paddingVertical: 10,
-    paddingHorizontal: 15,
-    borderRadius: 5,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 8,
     marginTop: 10,
   },
   cardButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: '600',
   },
   logoutButton: {
     backgroundColor: '#FF4C4C',

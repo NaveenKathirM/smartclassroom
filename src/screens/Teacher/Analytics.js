@@ -1,11 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
 const Analytics = () => {
   const [results, setResults] = useState([]);
@@ -13,10 +9,24 @@ const Analytics = () => {
   useEffect(() => {
     const fetchResults = async () => {
       try {
-        const storedResults = JSON.parse(await AsyncStorage.getItem('results')) || [];
-        setResults(storedResults);
+        const token = await AsyncStorage.getItem('access_token');
+        if (!token) {
+          throw new Error('No token found');
+        }
+
+        const response = await axios.get(
+          'http://192.168.1.11:6777/get-quiz-results',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          },
+        );
+
+        setResults(response.data);
       } catch (error) {
         console.error('Error fetching results:', error);
+        Alert.alert('Error', 'Failed to fetch quiz results.');
       }
     };
 
@@ -32,7 +42,9 @@ const Analytics = () => {
           {results.map((result, index) => (
             <View key={index} style={styles.chartRow}>
               <View style={styles.rowHeader}>
-                <Text style={styles.studentUsername}>{result.studentUsername || 'Unknown'}</Text>
+                <Text style={styles.studentUsername}>
+                  {result.studentUsername || 'Unknown'}
+                </Text>
                 <Text style={styles.percentageText}>{result.percentage}%</Text>
               </View>
               <View style={styles.chartWrapper}>
@@ -86,7 +98,7 @@ const styles = StyleSheet.create({
     padding: 15,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 6,
     elevation: 3,
   },

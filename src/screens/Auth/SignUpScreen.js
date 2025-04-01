@@ -10,9 +10,8 @@ import {
   Platform,
   FlatList,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios'; // Make sure axios is installed
 import DropDownPicker from 'react-native-dropdown-picker';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
 const SignUpScreen = ({navigation}) => {
   const [name, setName] = useState('');
@@ -21,7 +20,6 @@ const SignUpScreen = ({navigation}) => {
   const [type, setType] = useState(null);
   const [teacherCode, setTeacherCode] = useState('');
   const [adminCode, setAdminCode] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [studentDetails, setStudentDetails] = useState({
     class: '',
     registerNumber: '',
@@ -29,7 +27,6 @@ const SignUpScreen = ({navigation}) => {
     address: '',
   });
 
-  const [alert, setAlert] = useState({visible: false, type: '', message: ''});
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState([
     {label: 'Teacher', value: 'Teacher'},
@@ -38,11 +35,13 @@ const SignUpScreen = ({navigation}) => {
   ]);
 
   const handleSignUp = async () => {
+    // Basic Validation
     if (!name || !username || !password || !type) {
       Alert.alert('Error', 'All fields are required.');
       return;
     }
 
+    // Teacher Code Validation
     if (
       type === 'Teacher' &&
       !/^teacher00[1-9]|teacher010$/.test(teacherCode)
@@ -54,11 +53,13 @@ const SignUpScreen = ({navigation}) => {
       return;
     }
 
+    // Admin Code Validation
     if (type === 'Admin' && !/^admin00[1-9]|admin010$/.test(adminCode)) {
       Alert.alert('Error', 'Invalid Admin Code. Please try again.');
       return;
     }
 
+    // Student Details Validation
     if (type === 'Student') {
       const {
         class: studentClass,
@@ -81,16 +82,20 @@ const SignUpScreen = ({navigation}) => {
     };
 
     try {
-      const existingUsers =
-        JSON.parse(await AsyncStorage.getItem('users')) || [];
-      await AsyncStorage.setItem(
-        'users',
-        JSON.stringify([...existingUsers, userData]),
-      );
-      Alert.alert('Success', 'Account created successfully!');
+      // Use your local IP address (for real device testing)
+      const response = await axios.post(
+        'http://192.168.1.11:6777/signup',
+        userData,
+      ); // Replace with your local IP address
+      Alert.alert('Success', response.data.msg);
       setTimeout(() => navigation.navigate('Login'), 2000);
     } catch (error) {
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+      console.error('Error:', error); // Log the error for debugging
+      Alert.alert(
+        'Error',
+        error.response?.data?.msg ||
+          'Failed to create account. Please try again.',
+      );
     }
   };
 
@@ -125,21 +130,15 @@ const SignUpScreen = ({navigation}) => {
               value={username}
               onChangeText={setUsername}
             />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor="#999"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
 
-            {/* Password Input (Always Hidden with Asterisks) */}
-            <View style={styles.passwordContainer}>
-  <TextInput
-    style={styles.passwordInput}
-    placeholder="Password"
-    placeholderTextColor="#999"
-    // secureTextEntry={!showPassword} // Toggle visibility
-    value={password}
-    onChangeText={setPassword}
-  />
-  {/* <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.iconWrapper}>
-    <Text style={{ fontSize: 20 }}>{showPassword ? '🔐' : '🔑'}</Text>
-  </TouchableOpacity> */}
-</View>
             {/* Role Selection Dropdown */}
             <DropDownPicker
               open={open}
@@ -243,42 +242,6 @@ const styles = StyleSheet.create({
     shadowOffset: {width: 0, height: 4},
     shadowRadius: 6,
     elevation: 5,
-  },
-  passwordContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#ced6e0',
-    borderRadius: 10,
-    backgroundColor: '#ffffff',
-    marginBottom: 15,
-    height: 52,
-    paddingHorizontal: 15,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowOffset: {width: 0, height: 2},
-    shadowRadius: 4,
-    elevation: 2, // Android shadow
-  },
-  passwordInput: {
-    flex: 1,
-    fontSize: 16,
-  },
-  iconWrapper: {
-    padding: 10,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#2c3e50',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#7f8c8d',
-    textAlign: 'center',
-    marginBottom: 20,
   },
   input: {
     height: 50,

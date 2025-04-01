@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useState} from 'react';
 import {
   View,
   Text,
@@ -9,51 +9,91 @@ import {
   Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
 
-const QuizScreen = ({ navigation }) => {
+const QuizScreen = ({navigation}) => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '', '', '']); // Four options
   const [correctAnswer, setCorrectAnswer] = useState('');
   const [quizzes, setQuizzes] = useState([]);
 
-  const addQuiz = () => {
+  const addQuiz = async () => {
     // Ensure no fields are empty
-    if (!question.trim() || options.some((opt) => opt.trim() === '') || !correctAnswer.trim()) {
-      Alert.alert('Error', 'Please fill in all fields and provide a correct answer.');
+    if (
+      !question.trim() ||
+      options.some(opt => opt.trim() === '') ||
+      !correctAnswer.trim()
+    ) {
+      Alert.alert(
+        'Error',
+        'Please fill in all fields and provide a correct answer.',
+      );
       return;
     }
 
     // Ensure correctAnswer matches one of the provided options
     const correctOptionIndex = parseInt(correctAnswer.trim(), 10) - 1;
-    if (isNaN(correctOptionIndex) || correctOptionIndex < 0 || correctOptionIndex >= options.length) {
-      Alert.alert('Error', 'Correct answer must match one of the options (e.g., 1, 2, 3, 4).');
+    if (
+      isNaN(correctOptionIndex) ||
+      correctOptionIndex < 0 ||
+      correctOptionIndex >= options.length
+    ) {
+      Alert.alert(
+        'Error',
+        'Correct answer must match one of the options (e.g., 1, 2, 3, 4).',
+      );
       return;
     }
 
     const newQuiz = {
       question: question.trim(),
-      options: options.map((opt) => opt.trim()),
-      correctAnswer: options[correctOptionIndex],
+      options: options.map(opt => opt.trim()),
+      correctAnswer: correctOptionIndex + 1, // Send as an integer (1-based index)
     };
 
-    setQuizzes((prev) => [...prev, newQuiz]);
-    setQuestion('');
-    setOptions(['', '', '', '']);
-    setCorrectAnswer('');
+    try {
+      // Get the token from AsyncStorage
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No token found');
+      }
+
+      // Make API call to save the quiz
+      await axios.post('http://192.168.1.11:6777/create-quiz', newQuiz, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      Alert.alert('Success', 'Quiz added successfully!');
+      setQuestion('');
+      setOptions(['', '', '', '']);
+      setCorrectAnswer('');
+    } catch (error) {
+      console.error('Error saving quiz:', error);
+      Alert.alert('Error', 'Failed to add quiz. Please try again.');
+    }
   };
 
-  const saveQuizzes = async () => {
-    if (quizzes.length === 0) {
-      Alert.alert('Error', 'No quizzes to save.');
-      return;
-    }
-
+  const fetchQuizzes = async () => {
     try {
-      await AsyncStorage.setItem('quizzes', JSON.stringify(quizzes));
-      Alert.alert('Success', 'Quizzes saved successfully!');
-      navigation.goBack();
+      // Get the token from AsyncStorage
+      const token = await AsyncStorage.getItem('access_token');
+      if (!token) {
+        throw new Error('No token found');
+      }
+
+      // Fetch quizzes from the backend
+      const response = await axios.get('http://192.168.1.11:6777/get-quizzes', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setQuizzes(response.data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to save quizzes. Please try again.');
+      console.error('Error fetching quizzes:', error);
+      Alert.alert('Error', 'Failed to fetch quizzes.');
     }
   };
 
@@ -74,7 +114,7 @@ const QuizScreen = ({ navigation }) => {
           placeholder={`Option ${index + 1}`}
           placeholderTextColor="#999"
           value={opt}
-          onChangeText={(text) => {
+          onChangeText={text => {
             const updatedOptions = [...options];
             updatedOptions[index] = text;
             setOptions(updatedOptions);
@@ -90,6 +130,10 @@ const QuizScreen = ({ navigation }) => {
       />
       <TouchableOpacity style={styles.addButton} onPress={addQuiz}>
         <Text style={styles.addButtonText}>Add Question</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.saveButton} onPress={fetchQuizzes}>
+        <Text style={styles.saveButtonText}>Fetch Quizzes</Text>
       </TouchableOpacity>
 
       <View style={styles.quizList}>
@@ -109,15 +153,12 @@ const QuizScreen = ({ navigation }) => {
           </View>
         ))}
       </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={saveQuizzes}>
-        <Text style={styles.saveButtonText}>Save Quiz</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
+  // Add styles for the page
   container: {
     flexGrow: 1,
     padding: 20,
@@ -163,7 +204,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: {width: 0, height: 1},
     shadowRadius: 2,
   },
   quizText: {
