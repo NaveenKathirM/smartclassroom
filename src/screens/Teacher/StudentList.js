@@ -17,11 +17,14 @@ const StudentList = () => {
         }
 
         // Make the API call to Flask backend
-        const response = await axios.get('http://192.168.1.11:6777/students', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
+        const response = await axios.get(
+          'https://smart-classroom-backend-2.onrender.com//students',
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
           },
-        });
+        );
 
         setStudents(response.data);
         setLoading(false);

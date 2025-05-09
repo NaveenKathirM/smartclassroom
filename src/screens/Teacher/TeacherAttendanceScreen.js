@@ -1,43 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  Alert,
-} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {View, Text, StyleSheet, ScrollView, Alert} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TeacherAttendanceScreen = () => {
   const [attendanceData, setAttendanceData] = useState([]);
+  const [loading, setLoading] = useState(true); // State for loading status
 
   useEffect(() => {
     const fetchAttendanceData = async () => {
       try {
-        const keys = await AsyncStorage.getAllKeys();
-        const attendanceKeys = keys.filter((key) => key.startsWith('attendance_'));
-
-        const attendanceRecords = [];
-        for (const key of attendanceKeys) {
-          const username = key.replace('attendance_', '');
-          const attendance = JSON.parse(await AsyncStorage.getItem(key)) || [];
-          const percentage = ((attendance.length / 10) * 100).toFixed(2);
-          attendanceRecords.push({ username, percentage });
+        const accessToken = await AsyncStorage.getItem('access_token');
+        if (!accessToken) {
+          Alert.alert('Error', 'No access token found.');
+          return;
         }
 
-        setAttendanceData(attendanceRecords);
+        const response = await fetch(
+          'https://smart-classroom-backend-2.onrender.com/students', // Replace with your backend endpoint to get student data
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        const result = await response.json();
+        if (response.ok) {
+          setAttendanceData(result); // Update state with fetched data
+        } else {
+          Alert.alert('Error', 'Failed to fetch attendance data.');
+        }
       } catch (error) {
         Alert.alert('Error', 'Failed to fetch attendance data.');
+      } finally {
+        setLoading(false); // Stop loading once data is fetched
       }
     };
 
     fetchAttendanceData();
   }, []);
 
+  if (loading) {
+    return <Text>Loading...</Text>; // You can replace this with a spinner or a loading screen
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Attendance Overview</Text>
-      <Text style={styles.subtitle}>Analyze attendance data for all students:</Text>
+      <Text style={styles.subtitle}>
+        Analyze attendance data for all students:
+      </Text>
 
       {attendanceData.length === 0 ? (
         <View style={styles.noDataContainer}>
@@ -48,13 +62,13 @@ const TeacherAttendanceScreen = () => {
           <View key={index} style={styles.recordCard}>
             <View style={styles.row}>
               <Text style={styles.usernameText}>{record.username}</Text>
-              <Text style={styles.percentageText}>{record.percentage}%</Text>
+              <Text style={styles.percentageText}>{record.attendance}%</Text>
             </View>
             <View style={styles.barBackground}>
               <View
                 style={[
                   styles.bar,
-                  { width: `${record.percentage}%` }, // Adjust bar width dynamically
+                  {width: `${record.attendance}%`}, // Adjust bar width dynamically
                 ]}
               />
             </View>
@@ -101,7 +115,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {width: 0, height: 2},
     shadowRadius: 3,
     elevation: 2,
   },

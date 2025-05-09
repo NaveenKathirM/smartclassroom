@@ -59,11 +59,15 @@ const QuizScreen = ({navigation}) => {
       }
 
       // Make API call to save the quiz
-      await axios.post('http://192.168.1.11:6777/create-quiz', newQuiz, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      await axios.post(
+        'https://smart-classroom-backend-2.onrender.com//create-quiz',
+        newQuiz,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       Alert.alert('Success', 'Quiz added successfully!');
       setQuestion('');
@@ -84,11 +88,14 @@ const QuizScreen = ({navigation}) => {
       }
 
       // Fetch quizzes from the backend
-      const response = await axios.get('http://192.168.1.11:6777/get-quizzes', {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await axios.get(
+        'https://smart-classroom-backend-2.onrender.com//get-quizzes',
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       setQuizzes(response.data);
     } catch (error) {

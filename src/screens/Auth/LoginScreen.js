@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  ActivityIndicator, // Import ActivityIndicator for the loader
 } from 'react-native';
 import axios from 'axios'; // Axios for making HTTP requests
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -15,6 +16,7 @@ const LoginScreen = ({navigation}) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [alert, setAlert] = useState({visible: false, type: '', message: ''});
+  const [loading, setLoading] = useState(false); // State to track the loading status
 
   const handleLogin = async () => {
     // Basic validation
@@ -33,9 +35,10 @@ const LoginScreen = ({navigation}) => {
     };
 
     try {
+      setLoading(true); // Set loading to true before the API request
       // Send login request to the backend
       const response = await axios.post(
-        'http://192.168.1.11:6777/login',
+        'https://smart-classroom-backend-2.onrender.com//login',
         userData,
       ); // Replace with your local IP address or backend URL
 
@@ -71,6 +74,8 @@ const LoginScreen = ({navigation}) => {
         type: 'error',
         message: error.response?.data?.msg || 'Invalid username or password.',
       });
+    } finally {
+      setLoading(false); // Stop loading once the request is complete
     }
   };
 
@@ -93,8 +98,16 @@ const LoginScreen = ({navigation}) => {
         value={password}
         onChangeText={setPassword}
       />
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={loading}>
+        {/* Disable button while loading */}
+        {loading ? (
+          <ActivityIndicator size="small" color="#fff" /> // Show the loader when the button is pressed
+        ) : (
+          <Text style={styles.buttonText}>Login</Text>
+        )}
       </TouchableOpacity>
       <Text style={styles.link} onPress={() => navigation.navigate('SignUp')}>
         Don't have an account? <Text style={styles.linkHighlight}>Sign Up</Text>

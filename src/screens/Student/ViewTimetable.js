@@ -13,7 +13,7 @@ const ViewTimetable = () => {
       try {
         // Fetch timetable from the backend
         const response = await axios.get(
-          'http://192.168.1.11:6777/get-timetable',
+          'https://smart-classroom-backend-2.onrender.com//get-timetable',
         );
         setTimetable(response.data || {});
       } catch (error) {

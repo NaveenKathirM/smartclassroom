@@ -282,8 +282,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    width: '115%',
-    height: '83%',
+    width: '120%',
+    height: '70%',
     zIndex: 100,
   },
   timerText: {

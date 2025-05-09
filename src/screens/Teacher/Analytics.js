@@ -15,7 +15,7 @@ const Analytics = () => {
         }
 
         const response = await axios.get(
-          'http://192.168.1.11:6777/get-quiz-results',
+          'https://smart-classroom-backend-2.onrender.com//get-quiz-results',
           {
             headers: {
               Authorization: `Bearer ${token}`,

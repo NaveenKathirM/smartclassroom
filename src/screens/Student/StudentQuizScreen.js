@@ -24,7 +24,7 @@ const StudentQuizScreen = ({navigation}) => {
 
       try {
         const response = await axios.get(
-          'http://192.168.1.11:6777/get-quizzes',
+          'https://smart-classroom-backend-2.onrender.com//get-quizzes',
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -79,7 +79,7 @@ const StudentQuizScreen = ({navigation}) => {
       }
 
       await axios.post(
-        'http://192.168.1.11:6777/save-quiz-result',
+        'https://smart-classroom-backend-2.onrender.com//save-quiz-result',
         {
           studentUsername,
           percentage,

@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   FlatList,
+  ActivityIndicator, // Import ActivityIndicator for the loader
 } from 'react-native';
 import axios from 'axios'; // Make sure axios is installed
 import DropDownPicker from 'react-native-dropdown-picker';
@@ -33,6 +34,8 @@ const SignUpScreen = ({navigation}) => {
     {label: 'Student', value: 'Student'},
     {label: 'Admin', value: 'Admin'},
   ]);
+
+  const [loading, setLoading] = useState(false); // State for loading
 
   const handleSignUp = async () => {
     // Basic Validation
@@ -82,11 +85,13 @@ const SignUpScreen = ({navigation}) => {
     };
 
     try {
+      setLoading(true); // Start loading when the request begins
       // Use your local IP address (for real device testing)
       const response = await axios.post(
-        'http://192.168.1.11:6777/signup',
+        'https://smart-classroom-backend-2.onrender.com//signup',
         userData,
       ); // Replace with your local IP address
+
       Alert.alert('Success', response.data.msg);
       setTimeout(() => navigation.navigate('Login'), 2000);
     } catch (error) {
@@ -96,6 +101,8 @@ const SignUpScreen = ({navigation}) => {
         error.response?.data?.msg ||
           'Failed to create account. Please try again.',
       );
+    } finally {
+      setLoading(false); // Stop loading after the request is complete
     }
   };
 
@@ -216,8 +223,16 @@ const SignUpScreen = ({navigation}) => {
               </>
             )}
 
-            <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-              <Text style={styles.buttonText}>Sign Up</Text>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSignUp}
+              disabled={loading} // Disable button when loading
+            >
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" /> // Show loader when loading
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
           </View>
         )}
