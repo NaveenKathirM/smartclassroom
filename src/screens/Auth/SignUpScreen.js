@@ -88,12 +88,19 @@ const SignUpScreen = ({navigation}) => {
       setLoading(true); // Start loading when the request begins
       // Use your local IP address (for real device testing)
       const response = await axios.post(
-        'https://smart-classroom-backend-2.onrender.com//signup',
+        'http://192.168.1.23:6777/signup',
         userData,
       ); // Replace with your local IP address
-
-      Alert.alert('Success', response.data.msg);
-      setTimeout(() => navigation.navigate('Login'), 2000);
+      if (response.data.studentId) {
+        // If the user is a Student, pass the studentId to the next screen
+        navigation.navigate('FacialRecognitionScreen', {
+          studentId: response.data.studentId, // Pass the studentId to the next screen
+        });
+        Alert.alert('Success', response.data.msg);
+      } else {
+        Alert.alert('Success', response.data.msg);
+        setTimeout(() => navigation.navigate('Login'), 2000);
+      }
     } catch (error) {
       console.error('Error:', error); // Log the error for debugging
       Alert.alert(

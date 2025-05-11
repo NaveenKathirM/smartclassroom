@@ -19,6 +19,7 @@ import ManageTimetable from '../screens/Teacher/ManageTimetable';
 import ViewTimetable from '../screens/Student/ViewTimetable';
 import StartPresentation from '../screens/Teacher/StartPresentation';
 import JoinPresentation from '../screens/Student/JoinPresentation';
+import FacialRecognitionScreen from '../screens/Auth/FacialRecognitionScreen';
 
 const Stack = createStackNavigator();
 
@@ -46,6 +47,10 @@ const AppNavigator = () => (
     <Stack.Screen name="ViewTimetable" component={ViewTimetable} />
     <Stack.Screen name="StartPresentation" component={StartPresentation} />
     <Stack.Screen name="JoinPresentation" component={JoinPresentation} />
+    <Stack.Screen
+      name="FacialRecognitionScreen"
+      component={FacialRecognitionScreen}
+    />
   </Stack.Navigator>
 );
 

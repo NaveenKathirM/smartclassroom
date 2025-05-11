@@ -4,55 +4,52 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Alert,
+  ScrollView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ReactNativeBiometrics from 'react-native-biometrics';
-import {
-  Camera,
-  useCameraDevice,
-  useCameraPermission,
-} from 'react-native-vision-camera';
+import {Camera, CameraType} from 'react-native-camera-kit'; // Correct import for CameraKit
+import axios from 'axios';
+import RNFS from 'react-native-fs';
 
 const AttendanceScreen = ({navigation}) => {
   const [attendance, setAttendance] = useState([]);
   const [currentClass, setCurrentClass] = useState(1);
   const [timer, setTimer] = useState(0);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const [capturedImage, setCapturedImage] = useState(null);
   const cameraRef = useRef(null);
   const rnBiometrics = new ReactNativeBiometrics();
-  const {hasPermission, requestPermission} = useCameraPermission();
-  const device = useCameraDevice('front');
 
-  useEffect(() => {
-    const fetchAttendance = async () => {
-      const accessToken = await AsyncStorage.getItem('access_token');
-      try {
-        const response = await fetch(
-          'https://smart-classroom-backend-2.onrender.com/get-attendance', // Backend endpoint to fetch attendance
-          {
-            method: 'GET',
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              'Content-Type': 'application/json',
-            },
+  // Fetch Attendance data from the backend
+  const fetchAttendance = async () => {
+    const accessToken = await AsyncStorage.getItem('access_token');
+    try {
+      const response = await fetch(
+        'https://smart-classroom-backend-2.onrender.com/get-attendance', // Backend endpoint to fetch attendance
+        {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
           },
-        );
-
-        const result = await response.json();
-        if (response.ok) {
-          setAttendance(result.attendance);
-        } else {
-          console.error('Failed to fetch attendance', result.msg);
-          setAttendance([]);
-        }
-      } catch (error) {
-        console.error('Network error while fetching attendance', error);
+        },
+      );
+      const result = await response.json();
+      if (response.ok) {
+        setAttendance(result.attendance);
+      } else {
+        console.error('Failed to fetch attendance', result.msg);
         setAttendance([]);
       }
-    };
+    } catch (error) {
+      console.error('Network error while fetching attendance', error);
+      setAttendance([]);
+    }
+  };
 
+  useEffect(() => {
     fetchAttendance();
   }, []);
 
@@ -62,28 +59,31 @@ const AttendanceScreen = ({navigation}) => {
       const interval = setInterval(() => {
         setTimer(prev => prev - 1);
       }, 1000);
-
       return () => clearInterval(interval);
     } else if (timer === 0 && attendance.includes(currentClass)) {
       setCurrentClass(prev => prev + 1);
     }
   }, [timer, attendance, currentClass]);
 
-  useEffect(() => {
-    const getCameraPermission = async () => {
-      const status = await Camera.requestCameraPermission();
-    };
+  // Request Camera Permission
+  const requestPermission = async () => {
+    const status = await Camera.requestCameraPermission(); // Using CameraKitCamera for permission
+    if (status) {
+      setCameraOpen(true);
+    }
+  };
 
-    getCameraPermission();
+  useEffect(() => {
+    requestPermission();
   }, []);
 
+  // Handle Biometric Authentication
   const handleBiometricAuth = async () => {
     try {
       const {available, biometryType} = await rnBiometrics.isSensorAvailable();
 
       if (available) {
         let promptMessage = 'Confirm your identity to mark attendance';
-
         if (biometryType === 'Fingerprint') {
           promptMessage = 'Please place your finger to mark attendance';
         }
@@ -91,7 +91,7 @@ const AttendanceScreen = ({navigation}) => {
         const result = await rnBiometrics.simplePrompt({promptMessage});
 
         if (result.success) {
-          markAttendance();
+          captureImage(); // Proceed with image capture after successful authentication
         } else {
           Alert.alert('Error', 'Authentication failed or canceled.');
         }
@@ -106,46 +106,50 @@ const AttendanceScreen = ({navigation}) => {
     }
   };
 
-  // Mark Attendance in the system
-  const markAttendance = async () => {
-    const loggedInUser =
-      JSON.parse(await AsyncStorage.getItem('loggedInUser')) || {};
-    const username = loggedInUser.username;
-
-    if (attendance.includes(currentClass)) {
-      Alert.alert(
-        'Already Marked',
-        `Attendance for Class ${currentClass} is already marked.`,
-      );
-      return;
+  // Capture Image using Camera
+  const captureImage = async () => {
+    if (cameraRef.current) {
+      const options = {quality: 0.5, base64: true};
+      const data = await cameraRef.current.capture(options);
+      setCapturedImage(data.base64); // Save captured image
+      markAttendance(data.base64); // Call mark attendance with captured image
     }
+  };
 
-    const updatedAttendance = [...attendance, currentClass];
+  const markAttendance = async capturedImage => {
+    const accessToken = await AsyncStorage.getItem('access_token'); // Use token to authenticate user
+    const class_number = currentClass; // Use the current class number dynamically
 
     try {
-      const accessToken = await AsyncStorage.getItem('access_token');
-      const response = await fetch(
-        'https://smart-classroom-backend-2.onrender.com/mark-attendance', // Backend endpoint to mark attendance
+      // Convert base64 to binary using react-native-fs
+      const imageUri = capturedImage.uri; // capturedImage should have the URI (not base64)
+      const binaryData = await RNFS.readFile(imageUri, 'base64'); // Read the image file in base64 format
+
+      const formData = new FormData();
+      formData.append('class_number', class_number);
+      formData.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg', // Change this depending on the image type
+        name: 'attendance_image.jpg',
+        data: binaryData, // Send the image as binary data
+      });
+
+      const response = await axios.post(
+        'http://192.168.1.23:6777/mark-attendance',
+        formData,
         {
-          method: 'POST',
           headers: {
             Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
+            'Content-Type': 'multipart/form-data', // Use the correct content type
           },
-          body: JSON.stringify({class_number: currentClass}),
         },
       );
 
-      const result = await response.json();
+      const result = await response.data;
 
-      if (response.ok) {
-        await AsyncStorage.setItem(
-          `attendance_${username}`,
-          JSON.stringify(updatedAttendance),
-        );
-        setAttendance(updatedAttendance);
+      if (response.status === 200) {
         Alert.alert('Success', 'Attendance marked successfully!');
-        setCameraOpen(false); // Close camera after success
+        navigation.navigate('Login');
       } else {
         Alert.alert('Error', result.msg || 'Failed to mark attendance.');
       }
@@ -159,21 +163,18 @@ const AttendanceScreen = ({navigation}) => {
     return ((attendance.length / 10) * 100).toFixed(2);
   };
 
-  // Handle camera permission and display
-  if (device == null || !hasPermission) {
-    return <Text>Loading Camera...</Text>;
-  }
-
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Attendance</Text>
-      <Text style={styles.subtitle}>Mark your attendance for each class</Text>
+      <Text style={styles.subtitle}>
+        Please confirm your identity and mark attendance
+      </Text>
 
       {cameraOpen && (
         <Camera
           ref={cameraRef}
-          style={styles.fullScreenCamera} // Full screen camera
-          device={device}
+          style={styles.fullScreenCamera}
+          cameraType={CameraType.Front} // Using front camera
           isActive={cameraOpen}
         />
       )}
@@ -197,7 +198,7 @@ const AttendanceScreen = ({navigation}) => {
             }
             onPress={() => {
               setCameraOpen(true); // Open camera when marking attendance
-              handleBiometricAuth();
+              handleBiometricAuth(); // Trigger biometric authentication
             }}>
             <Text style={styles.attendanceButtonText}>
               {attendance.includes(index + 1) ? 'Marked' : 'Mark Attendance'}
