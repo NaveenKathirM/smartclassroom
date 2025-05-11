@@ -91,7 +91,7 @@ const SignUpScreen = ({navigation}) => {
         'http://192.168.1.23:6777/signup',
         userData,
       ); // Replace with your local IP address
-      if (response.data.studentId) {
+      if (response.data.studentId && type === 'Student') {
         // If the user is a Student, pass the studentId to the next screen
         navigation.navigate('FacialRecognitionScreen', {
           studentId: response.data.studentId, // Pass the studentId to the next screen

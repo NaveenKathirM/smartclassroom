@@ -106,55 +106,59 @@ const AttendanceScreen = ({navigation}) => {
     }
   };
 
-  // Capture Image using Camera
   const captureImage = async () => {
     if (cameraRef.current) {
-      const options = {quality: 0.5, base64: true};
+      const options = {quality: 0.5}; // No base64
       const data = await cameraRef.current.capture(options);
-      setCapturedImage(data.base64); // Save captured image
-      markAttendance(data.base64); // Call mark attendance with captured image
+      markAttendance(data.uri);
+
+      if (data?.uri) {
+        setCapturedImage(data.uri);
+      } else {
+        Alert.alert('Error', 'Failed to capture image.');
+      }
     }
+    console.log('adsfasd');
   };
 
-  const markAttendance = async capturedImage => {
-    const accessToken = await AsyncStorage.getItem('access_token'); // Use token to authenticate user
-    const class_number = currentClass; // Use the current class number dynamically
+  const markAttendance = async () => {
+    const loggedInUser = await AsyncStorage.getItem('loggedInUser');
+    const user = loggedInUser ? JSON.parse(loggedInUser) : null;
+
+    if (!user || !user.username) {
+      Alert.alert('Error', 'User not logged in.');
+      return;
+    }
+
+    const class_number = currentClass;
+    console.log('Username:', user.username); // Debug it!
 
     try {
-      // Convert base64 to binary using react-native-fs
-      const imageUri = capturedImage.uri; // capturedImage should have the URI (not base64)
-      const binaryData = await RNFS.readFile(imageUri, 'base64'); // Read the image file in base64 format
-
-      const formData = new FormData();
-      formData.append('class_number', class_number);
-      formData.append('image', {
-        uri: imageUri,
-        type: 'image/jpeg', // Change this depending on the image type
-        name: 'attendance_image.jpg',
-        data: binaryData, // Send the image as binary data
-      });
-
       const response = await axios.post(
         'http://192.168.1.23:6777/mark-attendance',
-        formData,
+        {username: user.username, class_number}, // Sending username along with class number
         {
           headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'multipart/form-data', // Use the correct content type
+            'Content-Type': 'application/json',
           },
         },
       );
 
-      const result = await response.data;
+      const result = response.data;
 
       if (response.status === 200) {
         Alert.alert('Success', 'Attendance marked successfully!');
-        navigation.navigate('Login');
+        setCameraOpen(false);
+        fetchAttendance();
       } else {
         Alert.alert('Error', result.msg || 'Failed to mark attendance.');
+        console.log(result);
+        setCameraOpen(false);
+        fetchAttendance();
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to mark attendance due to network error.');
+      console.error(error.response?.data || error.message);
+      Alert.alert('Error', 'Failed to mark attendance.');
     }
   };
 
@@ -283,9 +287,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    width: '115%',
-    height: '83%',
-    zIndex: 100,
+    width: '123%',
+    height: '53%',
+    zIndex: 1,
   },
   timerText: {
     fontSize: 16,

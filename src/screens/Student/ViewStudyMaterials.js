@@ -1,23 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Linking 
+import React, {useState, useEffect} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  FlatList,
+  Alert,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const ViewStudyMaterials = ({ navigation }) => {
+const ViewStudyMaterials = ({navigation}) => {
   const [studyMaterials, setStudyMaterials] = useState([]);
 
   // 📌 Fetch Study Materials
   useEffect(() => {
     const fetchMaterials = async () => {
-      const storedMaterials = JSON.parse(await AsyncStorage.getItem('studyMaterials')) || [];
+      const storedMaterials =
+        JSON.parse(await AsyncStorage.getItem('studyMaterials')) || [];
       setStudyMaterials(storedMaterials);
     };
     fetchMaterials();
   }, []);
 
   // 📌 Open PDF File in Browser or PDF Viewer
-  const openPDF = async (uri) => {
+  const openPDF = async uri => {
     try {
       const supported = await Linking.canOpenURL(uri);
       if (supported) {
@@ -42,15 +49,19 @@ const ViewStudyMaterials = ({ navigation }) => {
         <FlatList
           data={studyMaterials}
           keyExtractor={(item, index) => index.toString()}
-          renderItem={({ item }) => (
-            <TouchableOpacity style={styles.fileCard} onPress={() => openPDF(item.uri)}>
+          renderItem={({item}) => (
+            <TouchableOpacity
+              style={styles.fileCard}
+              onPress={() => openPDF(item.uri)}>
               <Text style={styles.fileText}>📄 {item.name}</Text>
             </TouchableOpacity>
           )}
         />
       )}
 
-      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Go Back</Text>
       </TouchableOpacity>
     </View>
@@ -91,7 +102,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: {width: 0, height: 3},
     shadowRadius: 5,
     elevation: 3,
   },
