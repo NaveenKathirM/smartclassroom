@@ -1,19 +1,18 @@
 import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {View, Text, Alert, StyleSheet} from 'react-native';
 import {Buffer} from 'buffer';
-import {Camera, CameraType} from 'react-native-camera-kit'; // Correct import for CameraKit
+import {Camera, CameraType} from 'react-native-camera-kit';
 import axios from 'axios';
 import RNFS from 'react-native-fs';
 
 const FacialRecognitionScreen = ({route, navigation}) => {
-  const {studentId} = route.params; // Get studentId from route params
+  const {studentId} = route.params;
   const cameraRef = useRef(null);
   const [capturedImages, setCapturedImages] = useState([]);
   const [count, setCount] = useState(0);
   const [faceBounds, setFaceBounds] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [capturing, setCapturing] = useState(true); // To control automatic capture
-
+  const [capturing, setCapturing] = useState(true);
   const sendImagesToServer = useCallback(async () => {
     try {
       const formData = new FormData();
